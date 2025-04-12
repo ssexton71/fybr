@@ -14,6 +14,8 @@ func main() {
 
 	tv := ui.NewTextViewer()
 	myWindow.SetContent(tv.Content)
-	myWindow.Resize(fyne.Size{Width: 320, Height: 240})
+	myWindow.Resize(fyne.Size{Width: 800, Height: 600})
+	myWindow.CenterOnScreen()
+	tv.SetFocus(myWindow.Canvas())
 	myWindow.ShowAndRun()
 }

@@ -2,11 +2,11 @@ package ui
 
 import (
 	"fmt"
-	"os"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
+	"github.com/ssexton71/fybr/util"
 )
 
 type textViewerToolbar struct {
@@ -14,9 +14,10 @@ type textViewerToolbar struct {
 	pathInput *widget.Entry
 	openBtn   *widget.Button
 	textInput *widget.Entry
+	lblStatus *widget.Label
 }
 
-func (tb *textViewerToolbar) initToolbar(textInput *widget.Entry) *textViewerToolbar {
+func (tb *textViewerToolbar) initToolbar(textInput *widget.Entry, lblStatus *widget.Label) *textViewerToolbar {
 	tb.pathInput = widget.NewEntry()
 	tb.pathInput.OnChanged = func(s string) {
 		if s > "" {
@@ -25,36 +26,52 @@ func (tb *textViewerToolbar) initToolbar(textInput *widget.Entry) *textViewerToo
 			tb.openBtn.Disable()
 		}
 	}
+	tb.pathInput.OnSubmitted = func(s string) { tb.onOpen() }
 	tb.openBtn = widget.NewButton("Open", func() { tb.onOpen() })
 	tb.openBtn.Disable()
 	tb.container = container.NewBorder(nil, nil, nil, tb.openBtn, tb.pathInput)
 	tb.textInput = textInput
+	tb.lblStatus = lblStatus
 	return tb
 }
 
 func (tb *textViewerToolbar) onOpen() {
-	data, err := os.ReadFile(tb.pathInput.Text)
-	str := string(data)
-	fmt.Printf("%v\n%v\n", err, str)
-	// FIXME: this doesn't populate/change the contents of the textInput
-	tb.textInput.Text = str
+	data, err := util.NewPath(tb.pathInput.Text).ReadData()
+	status := "ok"
+	if err != nil {
+		status = "error: " + err.Error()
+	}
+	if data != nil {
+		status += fmt.Sprintf(" (%d bytes)", len(data))
+		tb.textInput.SetText(string(data))
+	} else {
+		status += " (no data)"
+		tb.textInput.SetText("")
+	}
+	tb.lblStatus.SetText(status)
 }
 
-func NewTextViewerToolbar(textInput *widget.Entry) *textViewerToolbar {
-	return (&textViewerToolbar{}).initToolbar(textInput)
+func NewTextViewerToolbar(textInput *widget.Entry, lblStatus *widget.Label) *textViewerToolbar {
+	return (&textViewerToolbar{}).initToolbar(textInput, lblStatus)
 }
 
 type textViewer struct {
 	Content   *fyne.Container
 	toolbar   *textViewerToolbar
 	textInput *widget.Entry
+	lblStatus *widget.Label
 }
 
 func (tv *textViewer) initTextViewer() *textViewer {
 	tv.textInput = widget.NewMultiLineEntry()
-	tv.toolbar = NewTextViewerToolbar(tv.textInput)
-	tv.Content = container.NewBorder(tv.toolbar.container, nil, nil, nil, tv.textInput)
+	tv.lblStatus = widget.NewLabel("ready")
+	tv.toolbar = NewTextViewerToolbar(tv.textInput, tv.lblStatus)
+	tv.Content = container.NewBorder(tv.toolbar.container, tv.lblStatus, nil, nil, tv.textInput)
 	return tv
+}
+
+func (tv *textViewer) SetFocus(canvas fyne.Canvas) {
+	canvas.Focus(tv.toolbar.pathInput)
 }
 
 func NewTextViewer() *textViewer {
