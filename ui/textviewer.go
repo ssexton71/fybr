@@ -35,8 +35,7 @@ func (tb *textViewerToolbar) initToolbar(textInput *widget.Entry, lblStatus *wid
 	return tb
 }
 
-func (tb *textViewerToolbar) onOpen() {
-	data, err := util.NewPath(tb.pathInput.Text).ReadData()
+func (tb *textViewerToolbar) afterOpen(data []byte, err error) {
 	status := "ok"
 	if err != nil {
 		status = "error: " + err.Error()
@@ -49,6 +48,22 @@ func (tb *textViewerToolbar) onOpen() {
 		tb.textInput.SetText("")
 	}
 	tb.lblStatus.SetText(status)
+}
+
+func (tb *textViewerToolbar) onOpen() {
+	tb.lblStatus.SetText("reading...")
+	go func() {
+		path := util.Path{Path: tb.pathInput.Text,
+			Progress: func(n int) {
+				fyne.Do(func() {
+					tb.lblStatus.SetText(fmt.Sprintf("reading (%d bytes)...", n))
+				})
+			}}
+		data, err := path.ReadData()
+		fyne.Do(func() {
+			tb.afterOpen(data, err)
+		})
+	}()
 }
 
 func NewTextViewerToolbar(textInput *widget.Entry, lblStatus *widget.Label) *textViewerToolbar {
