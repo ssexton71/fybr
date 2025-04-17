@@ -12,7 +12,8 @@ func main() {
 	myApp.Settings().SetTheme(theme.LightTheme())
 	myWindow := myApp.NewWindow("FyBr")
 
-	tv := ui.NewTextViewer()
+	//	tv := ui.NewTextViewer()
+	tv := ui.NewTreeViewer()
 	myWindow.SetContent(tv.Content)
 	myWindow.Resize(fyne.Size{Width: 800, Height: 600})
 	myWindow.CenterOnScreen()
