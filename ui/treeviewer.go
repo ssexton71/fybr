@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strings"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
 	"github.com/clbanning/mxj/v2"
+	"github.com/ssexton71/fybr/util"
 )
 
 type treeViewer struct {
@@ -20,11 +22,21 @@ type treeViewer struct {
 }
 
 func (tv *treeViewer) ChildUIDs(id widget.TreeNodeID) []widget.TreeNodeID {
-	switch id {
-	case "":
-		return slices.AppendSeq([]string{}, maps.Keys(tv.treeModel))
+	uids := []string{}
+	if id == "" {
+		uids = slices.AppendSeq(uids, maps.Keys(tv.treeModel))
+	} else {
+		val := util.WalkNodes(tv.treeModel, strings.Split(id, ".")...)
+		m, ok := util.AsNode(val)
+		if !ok {
+			return []string{}
+		}
+		for k := range maps.Keys(m) {
+			uids = append(uids, id+"."+k)
+		}
 	}
-	return []string{}
+	slices.Sort(uids)
+	return uids
 }
 
 func (tv *treeViewer) IsBranch(id widget.TreeNodeID) bool {
@@ -42,6 +54,10 @@ func (tv *treeViewer) UpdateNode(id widget.TreeNodeID, branch bool, o fyne.Canva
 	text := id
 	if branch {
 		text += " (branch)"
+	} else {
+		text += ": "
+		text += util.WalkNodes(tv.treeModel, strings.Split(id, ".")...).(string)
+
 	}
 	o.(*widget.Label).SetText(text)
 }
@@ -52,6 +68,9 @@ func (tv *treeViewer) initTreeViewer() *treeViewer {
 	tv.treeModel = map[string]any{
 		"a": "b",
 		"c": "d",
+	}
+	tv.treeModel["e"] = map[string]any{
+		"f": "g",
 	}
 
 	tv.lblStatus = widget.NewLabel("ready")
